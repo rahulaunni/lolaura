@@ -210,7 +210,7 @@ client.on('message', function (topic, message) {
         else{
             //for testing the device reason for restart
             if(topicinfoArray[2].toString() == 'will'){
-                var filePath = path.join(__dirname, '../laura_logs/restart.txt');
+                var filePath = path.join(__dirname, '/public/logs/restart.txt');
                 var messageStr = message.toString();
                 var messageArray = messageStr.split('-');
                 if(messageArray[0] == 'Online'){
