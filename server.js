@@ -1,8 +1,8 @@
 /*
 ___      ___    __    __   ______    ____
 | |	    / _  \  | |   } ) (      )  / __ \
-| |    / /  \ \ | |   } | | ()  /  / /  \ |
-| |___||___  | || |___} | |  |\  \ | |__| |
+| |    / /  \ \ | |   } | | ()  /  / /  \ |      _____     
+| |___||___  | || |___} | |  |\  \ | |__| |      ----]
 |_____|||   |__||______.) |__  \__\[__  [__]
  Version: 1.0.0 (dev)
   Author: rahuanni@evelabs.co
@@ -31,6 +31,10 @@ const url = require('url')
 var useragent = require('useragent');
 var fs =require('fs');
 var md5 = require('md5-file');
+const publicIp = require('public-ip');
+var os = require('os');
+var needle = require('needle');
+
 //Models 
 var Task = require('./models/tasks');
 var Station = require('./models/stations');
@@ -154,6 +158,8 @@ cron.schedule('59 * * * *', function(){
     var time = Math.abs(hour-12);
     Task.collection.updateMany({'time':time,'status':{ $in:['closed','skipped']}},{$set:{status:'opened'}});
 });
+
+
 //MQTT Configuration
 var mqtt = require('mqtt')
 var client = mqtt.connect('mqtt://localhost:1883',{clientId:"LauraClient"});
@@ -162,6 +168,27 @@ client.on('connect', function() {
     client.subscribe('dripo/#',{ qos: 1});
 
 });
+
+//function to send public ip and computer hostname to online server
+publicIp.v4().then(ip => {
+    var publicip = ip;
+    //=> '46.5.21.123'
+var hostname=process.env.LOGNAME;
+var request = require('request');
+var nested = {
+  params: {
+    are: 'ok'
+  }
+}
+ 
+needle.put('http://dripo.care//updatelocalip?ip='+publicip+'&hname='+hostname, nested, function(err, resp) {
+    if(err){
+        console.log(err);
+    }
+});
+
+});
+
 
 //function fired on recieving a message from device in topic dripo/
 client.on('message', function (topic, message) {

@@ -423,7 +423,7 @@ router.get('/admin/getip', function(req, res) {
 
 
 router.get('/admin/getstaticip', function(req, res) {
-		res.json({success:true,ip:'3.127.153.164'});
+		res.json({success:true,ip:'13.127.153.164'});
 
 });
 

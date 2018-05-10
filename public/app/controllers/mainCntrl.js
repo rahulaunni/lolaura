@@ -146,24 +146,9 @@ angular.module('mainController',['authServices','userServices','nurseServices'])
 	    return viewLocation === $location.path();
 	};
 	
-	User.getType().then(function (data) {
+	User.getIp().then(function (data) {
 		if(data.data.success){
-			if(data.data.type == 'local'){
-				//function to get ip address of server
-				User.getIp().then(function (data) {
-					if(data.data.success){
-						$scope.ipaddress = data.data.ip;
-					}
-				});
-			} 
-			else{
-				//function to get static ip address of server
-				User.getStaticIp().then(function (data) {
-					if(data.data.success){
-						$scope.ipaddress = data.data.ip;
-					}
-				});
-			}
+			$scope.ipaddress = data.data.ip;
 		}
 	});
 
