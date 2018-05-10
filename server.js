@@ -173,7 +173,7 @@ client.on('connect', function() {
 publicIp.v4().then(ip => {
     var publicip = ip;
     //=> '46.5.21.123'
-var hostname=process.env.LOGNAME;
+var hostname=os.hostname();
 var request = require('request');
 var nested = {
   params: {
