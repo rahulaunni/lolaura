@@ -59,65 +59,6 @@ var ip = require('ip');
 app.use(morgan('dev'));
 //for parsing json body
 app.use(bodyParser.json({extended : true}));
-//bodyparser
-app.use(bodyParser.json());
-app.use(bodyParser.text());
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use('/', index);
-app.use('/api', api);
-
-//view engine
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'ejs');
-app.engine('html', require('ejs').renderFile);
-
-//set static folder for Angular stuffs
-app.use(express.static(path.join(__dirname, '/public')));
-
-
-// Just send the index.html for other files to support HTML5Mode
-app.all('/*', function(req, res, next) {
-    res.sendFile(path.join(__dirname,  'public/app/views', 'index.html'));
-});
-
-
-//mongodb configuration
-mongoose.Promise = global.Promise;
-mongoose.connect('mongodb://localhost/lauradb',{ useMongoClient: true }, function(err) {
-// mongoose.connect('mongodb://' + argv.be_ip + ':80/lauradb',{ useMongoClient: true }, function(err) {
-	if(err){
-		console.log("Mongodb connection failed");
-	}
-	else{
-		console.log("Mongodb connection success");
-	}
-});
-
-
-//scheduled cron job tasks
-//Task 1 : Change status of task from opened to alerted in 59th minute       
-cron.schedule('59 * * * *', function(){
-	var date = new Date();
-	var hour = date.getHours();
- 	Task.collection.updateMany({'time':hour,'status':'opened'},{$set:{status:'alerted'}});
-});
-//Task 2: Change status of task from closed/skipped to opened in 59th minute
-// cron.schedule('59 * * * *', function(){
-//     var date = new Date();
-//     var hour = date.getHours();
-//     var time = Math.abs(hour-12);
-//     Task.collection.updateMany({'time':time,'status':{ $in:['closed','skipped']}},{$set:{status:'opened'}});
-// });
-//Task 3 : Send Task details in every hour in 1st min
-cron.schedule('1 * * * *', function(){
-    sendTaskDetails();
-});
-
-cron.schedule('55 23 * * *', function(){
-    sendAnalysis();
-});
-
-
 
 
 //route for updating dripo
@@ -296,6 +237,71 @@ function sendAnalysis() {
 
     });
 }
+
+
+
+
+
+//bodyparser
+app.use(bodyParser.json());
+app.use(bodyParser.text());
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use('/', index);
+app.use('/api', api);
+
+//view engine
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'ejs');
+app.engine('html', require('ejs').renderFile);
+
+//set static folder for Angular stuffs
+app.use(express.static(path.join(__dirname, '/public')));
+
+
+// Just send the index.html for other files to support HTML5Mode
+app.all('/*', function(req, res, next) {
+    res.sendFile(path.join(__dirname,  'public/app/views', 'index.html'));
+});
+
+
+//mongodb configuration
+mongoose.Promise = global.Promise;
+mongoose.connect('mongodb://localhost/lauradb',{ useMongoClient: true }, function(err) {
+// mongoose.connect('mongodb://' + argv.be_ip + ':80/lauradb',{ useMongoClient: true }, function(err) {
+	if(err){
+		console.log("Mongodb connection failed");
+	}
+	else{
+		console.log("Mongodb connection success");
+	}
+});
+
+
+//scheduled cron job tasks
+//Task 1 : Change status of task from opened to alerted in 59th minute       
+cron.schedule('59 * * * *', function(){
+	var date = new Date();
+	var hour = date.getHours();
+ 	Task.collection.updateMany({'time':hour,'status':'opened'},{$set:{status:'alerted'}});
+});
+//Task 2: Change status of task from closed/skipped to opened in 59th minute
+// cron.schedule('59 * * * *', function(){
+//     var date = new Date();
+//     var hour = date.getHours();
+//     var time = Math.abs(hour-12);
+//     Task.collection.updateMany({'time':time,'status':{ $in:['closed','skipped']}},{$set:{status:'opened'}});
+// });
+//Task 3 : Send Task details in every hour in 1st min
+cron.schedule('1 * * * *', function(){
+    sendTaskDetails();
+});
+
+cron.schedule('55 23 * * *', function(){
+    sendAnalysis();
+});
+
+
+
 
 
 //MQTT Configuration
