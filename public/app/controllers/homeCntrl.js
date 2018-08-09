@@ -2,8 +2,6 @@ angular.module('homeController',['homeServices'])
 .controller('homeCntrl',function ($http,$route,$scope,$rootScope,$interval,$window,$location,$timeout,$mdDialog,$scope,Home,socket,Auth) {
     //redirect user if no station selected
     Auth.getUser().then(function (data) {
-      console.log("calling");
-      console.log(data);
       if(!data.data.station){
         $location.path('/selectstation')
       }
@@ -25,11 +23,16 @@ angular.module('homeController',['homeServices'])
     $scope.noOpenedTasks = false;
     $scope.noInprogressTasks=false;
     $scope.noAlertedTasks = false;
+    $scope.pageloaded=false;
+
+
+
     //on page reload get all tasks from db
     Home.getopenedTasks().then(function (data) {
         if(data.data.success){
             $scope.openedtasks = data.data.openedtasks;
             $scope.times = data.data.times;
+
 
         }
         else{
@@ -51,6 +54,12 @@ angular.module('homeController',['homeServices'])
             	else{
             		$scope.inprogresstasks[key].span = 4;
             	}
+              if(data.data.inprogresstasks[key].infusionstatus=='start' || data.data.inprogresstasks[key].infusionstatus=='infusing'){
+                $scope.inprogresstasks[key].prgbar = 'md-primary';
+              }
+              else{
+                $scope.inprogresstasks[key].prgbar = 'md-warn';
+              }
             	
             }
 
@@ -64,24 +73,17 @@ angular.module('homeController',['homeServices'])
     Home.getalertedTasks().then(function (data) {
         if(data.data.success){
             $scope.alertedtasks = data.data.alertedtasks;
+            $scope.pageloaded=true;
+
 
         }else{
            $scope.alertedtasks=[];
            $scope.noAlertedTasks = true;
-
+           $scope.pageloaded=true;
         }
     });
    
 
-    //to show the card details as dialog box
-    $scope.showDetails = function(ev,task) {
-       $mdDialog.show({
-         contentElement: '#myDialog'+task._id,
-         parent: angular.element(document.body),
-         targetEvent: ev,
-         clickOutsideToClose: true
-       });
-     }
 
     //function to change opened task to alerted in front end
     $interval(function () {
@@ -98,8 +100,52 @@ angular.module('homeController',['homeServices'])
             }
         }
         else if(currentDate.getMinutes() == 0){ //sync with database
-            $window.location.reload('/');
-        }
+          Home.getopenedTasks().then(function (data) {
+              if(data.data.success){
+                  $scope.openedtasks = data.data.openedtasks;
+                  $scope.times = data.data.times;
+
+              }
+              else{
+                $scope.openedtasks = [{}];
+                $scope.noOpenedTasks = true;
+
+              }
+             
+          });
+
+          //on page reload get all active tasks from db
+          Home.getinprogressTasks().then(function (data) {
+              if(data.data.success){
+                  $scope.inprogresstasks = data.data.inprogresstasks;
+                  for(var key in data.data.inprogresstasks){
+                    if(data.data.inprogresstasks[key].type == 'infusion'){
+                      $scope.inprogresstasks[key].span = 6;
+                    }
+                    else{
+                      $scope.inprogresstasks[key].span = 4;
+                    }
+                    
+                  }
+
+              }else{
+                 $scope.inprogresstasks=[{}];
+                 $scope.noInprogressTasks=true;
+
+              }
+          });
+          //get alerted
+          Home.getalertedTasks().then(function (data) {
+              if(data.data.success){
+                  $scope.alertedtasks = data.data.alertedtasks;
+
+              }else{
+                 $scope.alertedtasks=[];
+                 $scope.noAlertedTasks = true;
+
+              }
+          });
+                  }
 
     },60000)
 
@@ -115,17 +161,17 @@ angular.module('homeController',['homeServices'])
             angular.element($cancelButton).addClass('md-raised');
         }
       })
-      .title('Would you like to skip this '+task.type+' ?')
+      .title('Would you like to  delete this '+task.type+' ?')
       .textContent('This will remove '+task.type+' permanantly')
       .ariaLabel('skip_task')
       .targetEvent(ev)
-      .ok('SKIP')
+      .ok('DELETE')
       .cancel('CANCEL');
 
       $mdDialog.show(confirm).then(function() {
         Home.skipTask(task).then(function (data) {
             if(data.data.success){
-                $window.location.reload('/');
+              $route.reload('/');
             }
         });
 
@@ -147,8 +193,8 @@ angular.module('homeController',['homeServices'])
             angular.element($cancelButton).addClass('md-raised');
         }
       })
-      .title('Are you sure you want to close this task ?')
-      .textContent('Was this task done this task manually !!!')
+      .title('Have you done this task with out dripo ?')
+      .textContent('Select yes to add this task to patients infusion history')
       .ariaLabel('done_task')
       .targetEvent(ev)
       .ok('YES')
@@ -157,7 +203,7 @@ angular.module('homeController',['homeServices'])
       $mdDialog.show(confirm).then(function() {
         Home.closeTask(task).then(function (data) {
             if(data.data.success){
-                $window.location.reload('/');
+              $route.reload('/');
             }
         });
 
@@ -170,6 +216,7 @@ angular.module('homeController',['homeServices'])
     socket.on('dripo', function(data) {
     	$scope.$apply(function () {
         if(data.infusionstatus == 'start'){
+                $route.reload('/');
           for(var key in $scope.openedtasks){
             if($scope.openedtasks[key]._id == data.taskid){
               $scope.noInprogressTasks=false;
@@ -223,6 +270,31 @@ angular.module('homeController',['homeServices'])
               }
             }
           }
+          Home.getinprogressTasks().then(function (data) {
+              if(data.data.success){
+                  $scope.inprogresstasks = data.data.inprogresstasks;
+                  for(var key in data.data.inprogresstasks){
+                    if(data.data.inprogresstasks[key].type == 'infusion'){
+                      $scope.inprogresstasks[key].span = 6;
+                    }
+                    else{
+                      $scope.inprogresstasks[key].span = 4;
+                    }
+                    if(data.data.inprogresstasks[key].infusionstatus=='start' || data.data.inprogresstasks[key].infusionstatus=='infusing'){
+                      $scope.inprogresstasks[key].prgbar = 'md-primary';
+                    }
+                    else{
+                      $scope.inprogresstasks[key].prgbar = 'md-warn';
+                    }
+                    
+                  }
+
+              }else{
+                 $scope.inprogresstasks=[{}];
+                 $scope.noInprogressTasks=true;
+
+              }
+          });
         }//end of start
         else if(data.infusionstatus == 'infusing'){
           for(var key in $scope.inprogresstasks){
@@ -522,35 +594,133 @@ angular.module('homeController',['homeServices'])
   //acknowledging the alert
   $scope.ackAlert = function(ev,task) { 
     if(task.infusionstatus == 'Empty'){
-      socket.emit('publish', {topic:task.topic+'mon',payload:task._medication._id+'-'+task._id+'-'+'Empty_ACK'+'-'+task.rate+'-'+task.infusedVolume+'-'+task.timeRemaining+'-'+task.totalVolume+'-'+task.devicecharge});
+      console.log(task);
+      socket.emit('publish', {topic:task.topic+'mon',payload:task._id+'-'+'Empty_ACK'+'-'+task.rate+'-'+task.infusedVolume+'-'+task.timeRemaining+'-'+task.totalVolume+'-'+task.devicecharge});
       socket.emit('publish', {topic:task.topic+'staAck',payload:'STA_ACK'});
 
     }
     else if(task.infusionstatus == 'Device_Disconnected'){
-      socket.emit('publish', {topic:task.topic+'mon',payload:task._medication._id+'-'+task._id+'-'+task.infusionstatus+'_ACK'+'-'+task.rate+'-'+task.infusedVolume+'-'+task.timeRemaining+'-'+task.totalVolume+'-'+task.devicecharge});
+      socket.emit('publish', {topic:task.topic+'mon',payload:task._id+'-'+task.infusionstatus+'_ACK'+'-'+task.rate+'-'+task.infusedVolume+'-'+task.timeRemaining+'-'+task.totalVolume+'-'+task.devicecharge});
 
     }
     else if(task.infusionstatus == 'Block'){
       console.log(task);
-      socket.emit('publish', {topic:task.topic+'mon',payload:task._medication._id+'-'+task._id+'-'+'Block_ACK'+'-'+task.rate+'-'+task.infusedVolume+'-'+task.timeRemaining+'-'+task.totalVolume+'-'+task.devicecharge});
+      socket.emit('publish', {topic:task.topic+'mon',payload:task._id+'-'+'Block_ACK'+'-'+task.rate+'-'+task.infusedVolume+'-'+task.timeRemaining+'-'+task.totalVolume+'-'+task.devicecharge});
       socket.emit('publish', {topic:task.topic+'staAck',payload:'STA_ACK'});
 
     }
     else if(task.infusionstatus == 'Rate_Err'){
       console.log(task);
-      socket.emit('publish', {topic:task.topic+'mon',payload:task._medication._id+'-'+task._id+'-'+'Rate_Err_ACK'+'-'+task.rate+'-'+task.infusedVolume+'-'+task.timeRemaining+'-'+task.totalVolume+'-'+task.devicecharge});
+      socket.emit('publish', {topic:task.topic+'mon',payload:task._id+'-'+'Rate_Err_ACK'+'-'+task.rate+'-'+task.infusedVolume+'-'+task.timeRemaining+'-'+task.totalVolume+'-'+task.devicecharge});
       socket.emit('publish', {topic:task.topic+'staAck',payload:'STA_ACK'});
 
     }
 
     else if(task.infusionstatus == 'Complete'){
-      socket.emit('publish', {topic:task.topic+'mon',payload:task._medication._id+'-'+task._id+'-'+task.infusionstatus+'_ACK'+'-'+task.rate+'-'+task.infusedVolume+'-'+task.timeRemaining+'-'+task.totalVolume+'-'+task.devicecharge});
+      socket.emit('publish', {topic:task.topic+'mon',payload:task._id+'-'+task.infusionstatus+'_ACK'+'-'+task.rate+'-'+task.infusedVolume+'-'+task.timeRemaining+'-'+task.totalVolume+'-'+task.devicecharge});
       socket.emit('publish', {topic:task.topic+'staAck',payload:'STA_ACK'});
 
     }
     
 
   };
+
+
+
+//add task functions and variables
+$scope.showAddtask = function(ev) {
+  $mdDialog.show({
+    contentElement: '#myDialog',
+    parent: angular.element(document.body),
+    targetEvent: ev,
+    clickOutsideToClose: true
+  });
+};
+
+$scope.tasktimes=[{disp:'12 AM',val:0},{disp:'1 AM',val:1},{disp:'2 AM',val:2},{disp:'3 AM',val:3},{disp:'4 AM',val:4},{disp:'5 AM',val:5},{disp:'6 AM',val:6}
+,{disp:'7 AM',val:7},{disp:'8 AM',val:8},{disp:'9 AM',val:9},{disp:'10 AM',val:10},{disp:'11 AM',val:11},{disp:'12 PM',val:12},{disp:'1 PM',val:13},{disp:'2 PM',val:14}
+,{disp:'3 PM',val:15},{disp:'4 PM',val:16},{disp:'5 PM',val:17},{disp:'6 PM',val:18},{disp:'7 PM',val:19},{disp:'8 PM',val:20},{disp:'9 PM',val:21},{disp:'10 PM',val:22},{disp:'11 PM',val:23}];
+
+$scope.beds = [];
+$scope.nobed=false;
+//function called on page load gives all the stations associated with the user to frontend
+
+
+angular.element(document).ready(function () {
+  Home.viewBed().then(function (data) {
+    if(data.data.success){
+      $scope.beds=data.data.beds;
+
+    }
+    else{
+      $scope.nobed=true;
+
+    }
+  });
+
+});
+
+$scope.cancelAddTask=function () {
+  $scope.taskForm.$setPristine(true);
+  $scope.taskForm.$setUntouched(true);
+  $mdDialog.hide();
+}
+
+$scope.addTask = function (ipdata) {
+  if(ipdata.timefi == null && ipdata.medicinerate == null){
+    ipdata.medicinerate=Math.round(ipdata.medicinevolume/4);
+
+  }
+  else if('timefi' in ipdata){
+      ipdata.medicinerate=Math.round(ipdata.medicinevolume/ipdata.timefi);
+
+  }
+  console.log(ipdata);
+  Home.addTask(ipdata).then(function (data) {
+    if(data.data.success){
+      $route.reload('/');
+    }
+  })
+
+}
+
+
+
+//show task details on click
+$scope.showDetails= function(ev,task) {
+              $mdDialog.show ({
+                locals: { task: task},
+                targetEvent: ev,
+                 clickOutsideToClose: true,
+                 scope: $scope,        
+                 preserveScope: true,           
+                 template:
+           '      <md-dialog layout="column" layout-align="center center">'+
+'                  <div class="md-subhead">Type :{{task.type}}</div>'+
+'                  <div class="md-subhead">Time :{{task.timeampm}}</div>'+
+'                  <md-divider></md-divider>'+
+'                  <div class="md-headline">Patient Details</div>'+
+'                  <div class="md-subhead">Patient :{{task._patient.patientname}}</div>'+
+'                  <div class="md-subhead">Age :{{task._patient.patientage}}</div> '+
+'                  <div class="md-subhead">Weight :{{task._patient.patientweight}}</div> '+
+'                  <md-divider></md-divider>'+
+'                  <div class="md-headline">Medication Details</div>'+
+'                  <div class="md-subhead">Medication :{{task._medication.medicinename}}</div>'+
+'                  <div class="md-subhead">Rate :{{task._medication.medicinerate}} ml/hr</div> '+
+'                  <div class="md-subhead">Volume :{{task._medication.medicinevolume}} ml</div> '+
+'              </md-dialog> ',
+                 controller: function DialogController($scope, $mdDialog,task) {
+                  $scope.task = task;
+                    $scope.closeDialog = function() {
+                       $mdDialog.hide();
+                    }
+                 }
+             })
+
+           };
+
+$scope.dpfs=[15,20,60];
+
 
 
 

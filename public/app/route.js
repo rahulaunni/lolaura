@@ -124,6 +124,39 @@ var app = angular.module('appRoutes', ['ngRoute'])
 		controllerAs: 'help',
 		permission:['nurse']
 	})
+	.when('/su/home',{
+		templateUrl:'app/views/su/home.html',
+		authenticated:true,
+		controller: 'suhomeCntrl',
+		controllerAs: 'suhome',
+		permission:['su']
+
+	})
+	.when('/su/managesynapse',{
+		templateUrl:'app/views/su/localserverdetails.html',
+		authenticated:true,
+		controller: 'suCntrl',
+		controllerAs: 'su',
+		permission:['su']
+
+	})
+	.when('/su/analysis',{
+		templateUrl:'app/views/su/analysis.html',
+		authenticated:true,
+		controller: 'suAnalysisCntrl',
+		controllerAs: 'analysis',
+		permission:['su']
+
+	})
+	.when('/doc/home',{
+		templateUrl:'app/views/doc/home.html',
+		authenticated:true,
+		controller: 'dochomeCntrl',
+		controllerAs: 'dochome',
+		permission:['doctor']
+
+	})
+
 	.otherwise({redirectTo:'/'});
 //function to remove defualut /#/ thing
 	$locationProvider
@@ -152,6 +185,12 @@ app.run(['$rootScope','Auth','User','$location',function ($rootScope,Auth,User,$
 			                event.preventDefault(); // If at least one role does not match, prevent accessing route
 			                if(data.data.permission == 'admin'){
 			                	$location.path('/admin/home')
+			                }
+			                else if(data.data.permission == 'su'){
+			                	$location.path('/su/home')
+			                }
+			                else if(data.data.permission == 'doctor'){
+			                	$location.path('/doc/home')
 			                }
 			                else{
 			                	$location.path('/'); // Redirect to home instead

@@ -8,12 +8,14 @@ var Patient = new Schema({
     patientweight:Number,
     patientstatus:String,
     bedname:String,
+    gender:String,
     doctorname:String,
     admittedon:Date,
     dischargedon:Date,
     stationname: String,
     _admin:String,
     _bed:{ type: Schema.ObjectId, ref: 'Bed'},
+    _station:{ type: Schema.ObjectId, ref: 'Station'},
     _medication:[{ type: Schema.ObjectId, ref: 'Medication'}],
 });
 

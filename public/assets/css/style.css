@@ -144,7 +144,11 @@ figure{
   height:20%;
 }
 .infusion .status{
-  height:65%;
+  height:45%;
+  flex-flow: row;
+}
+.infusion .delete{
+  height:20%;
   flex-flow: row;
 }
 
@@ -158,12 +162,19 @@ display: none;
 height: 0%;
 }
 
+
 .Block .status,.Rate_Err .status,.Empty .status,.Device_Disconnected .status,.Complete .status{
   height:45%;
 }
 .Block .action,.Rate_Err .action,.Empty .action,.Device_Disconnected .action,.Complete .action{
     height:20%;
     display: flex;
+}
+
+
+
+.Block .delete,.Rate_Err .delete,.Empty .delete,.Device_Disconnected .delete,.Complete .delete{
+    display:none;
 }
 
 .md-tab-item {
@@ -260,3 +271,34 @@ input:-webkit-autofill {
   background-color: #FF0000;
 }
 
+table {
+    border-collapse: collapse;
+    width: 100%;
+    border-radius: 3px;
+    background: #fcfcfc;
+    overflow: hidden;
+ -webkit-box-shadow: 0px 0px 3px 1px rgba(181,181,181,1);
+-moz-box-shadow: 0px 0px 3px 1px rgba(181,181,181,1);
+box-shadow: 0px 0px 3px 1px rgba(181,181,181,1);
+}
+ .HIGH{
+  background: #FF0000;
+}
+ .MEDIUM{
+  background: #FFFF00;
+}
+ .LOW{
+  background: #00FF00;
+}
+th, td {
+    text-align: left;
+    padding: 8px;
+    border: 1px solid #efefef;
+}
+
+tr:nth-child(even){background-color: #f2f2f2}
+
+th {
+    background-color: #999;
+    color: white;
+}

@@ -20,13 +20,25 @@ var Dripo = require('../models/dripos');
 var Patient = require('../models/patients');
 var Medication = require('../models/medications');
 var Task = require('../models/tasks');
+var Synapse = require('../models/synapselist');
+var Infusionhistory = require('../models/infusionhistories');
+var Analysis = require('../models/analysis');
+
+
+         
 var jwt = require('jsonwebtoken');
 var secret = 'lauraiswolverinesdaughter';
 var nodemailer = require('nodemailer');
 var ObjectId = require('mongodb').ObjectID;
 var ip = require('ip');
 var request = require('request');
-
+//sendgrid config
+const sgMail = require('@sendgrid/mail');
+sgMail.setApiKey('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');
+var serv = require("../server.js");
+//MQTT Configuration
+//var mqtt = require('mqtt')
+// var client = mqtt.connect('mqtt://localhost:1883',{clientId:"LauraClient2"});
 module.exports = function(router) {
 
 //route to resgister new user
@@ -43,38 +55,25 @@ router.post('/register', function(req,res){
 	user.save(function(err){
 		if (err) {
 			//responding error back to frontend
-			res.json({success:false,message:'User already exist'});
+			res.json({success:false,message:'User alfy exist'});
 		}
 		else{
-			//nodemailer config
-			var transporter = nodemailer.createTransport({
-			  service: 'gmail',
-			  auth: {
-			    user: 'dripocare@gmail.com', 
-			    pass: '3v3lab5.co'
-			  }
-			});
 			//to get the host
 			var host=req.get('host');
 			//link for the mail for activation of account
 			var link="http://"+req.get('host')+"/activate/"+user.tempToken; 
 			var ipaddress = ip.address();
-			var offlinelink = "http://"+ipaddress+":3000"+"/activate/"+user.tempToken; 
-			//activation mail object
-			var mailOptions = {
-			  from: 'dripocare@gmail.com',
-			  to: user.userName,
-			  subject: 'Verification Link For Evelabs.care',
-			html : "Hello "+user.userName+",<br> Please Click on the link to verify your email.<br><a href="+link+">Click here to verify</a><br>Please Click on this link to verify your email if you are registered local server<br><a href="+offlinelink+">Click here to verify</a>" 
+			var offlinelink = "http://"+ipaddress+"/activate/"+user.tempToken; 
+			var onlinelink = "http://dripo.care/activate/"+user.tempToken; 
 
+			const msg = {
+  			 to: user.userName,
+ 			 from: 'dripocare@evelabs.co',
+ 			 subject: 'Verification Link For dripo.care',
+  			text: '******Email Contains two type links***********',
+  			html: "Hello "+user.userName+",<br> Please Click on the link to verify your email.<br><a href="+onlinelink+">Click here to verify</a><br>Please Click on this link to verify your email if you are registered local server<br><a href="+offlinelink+">Click here to verify</a>" ,
 			};
-			transporter.sendMail(mailOptions, function (err, info) {
-			   if(err)
-			     console.log(err)
-			   else
-			     console.log(info);
-			});
-
+			sgMail.send(msg);
 			res.json({success:true,message:'A verification mail has been sent to your email'});
 		}
 	});	
@@ -117,30 +116,23 @@ router.put('/resend', function(req, res) {
 				console.log(err);
 				res.json({success:false,message:'Failed to send activation link, Try after sometime'})
 			} else {
-				// If user successfully saved to database, create e-mail object
-				var transporter = nodemailer.createTransport({
-				  service: 'gmail',
-				  auth: {
-				    user: 'dripocare@gmail.com', 
-				    pass: '3v3lab5.co'
-				  }
-				});
 				var host=req.get('host');
-				var link="http://"+req.get('host')+"/activate/"+user.tempToken; 
-				var ipaddress = ip.address();
-				var offlinelink = "http://"+ipaddress+":3000"+"/activate/"+user.tempToken; 
-				var mailOptions = {
-				  from: 'dripocare@gmail.com',
-				  to: user.userName,
-				  subject: 'Verification Link For Evelabs.care',
-				html : "Hello "+user.userName+",<br> Please Click on this link to verify your email if you are registered with evelabs.care.<br><a href="+link+">Click here to verify</a><br> Please Click on this link to verify your email if you are registered local server<br><a href="+offlinelink+">Click here to verify</a>" 
-				};
-				transporter.sendMail(mailOptions, function (err, info) {
-				   if(err)
-				     console.log(err)
-				   else
-				     console.log(info);
-				});
+			//link for the mail for activation of account
+			var link="http://"+req.get('host')+"/activate/"+user.tempToken; 
+			var ipaddress = ip.address();
+			var offlinelink = "http://"+ipaddress+"/activate/"+user.tempToken; 
+			var onlinelink = "http://dripo.care/activate/"+user.tempToken; 
+
+			const msg = {
+  			 to: user.userName,
+ 			 from: 'dripocare@evelabs.co',
+ 			 subject: 'Verification Link For dripo.care',
+  			text: '******Email Contains two type links***********',
+  			html: "Hello "+user.userName+",<br> Please Click on the link to verify your email for dripo.care.<br><a href="+onlinelink+">Click here to verify</a><br>Please Click on this link to verify your email if you are registered local server<br><a href="+offlinelink+">Click here to verify</a>" ,
+			};
+			sgMail.send(msg);
+
+
 				res.json({ success: true, message: 'Activation link has been sent to ' + user.userName + '!' }); // Return success message to controller
 			}
 		});
@@ -163,29 +155,21 @@ router.put('/forgotpassword', function(req, res) {
 				if (err) {
 					res.json({ success: false, message: err }); // Return error if cannot connect
 				} else {
-					var transporter = nodemailer.createTransport({
-					  service: 'gmail',
-					  auth: {
-					    user: 'dripocare@gmail.com', 
-					    pass: '3v3lab5.co'
-					  }
-					});
 					var host=req.get('host');
+					//link for the mail for activation of account
 					var link="http://"+req.get('host')+"/resetpassword/"+user.resetToken; 
 					var ipaddress = ip.address();
-					var offlinelink = "http://"+ipaddress+":3000"+"/resetpassword/"+user.resetToken; 
-					var mailOptions = {
-					  from: 'dripocare@gmail.com',
-					  to: user.userName,
-					  subject: 'Password reset link for Evelabs.care',
-					html : "Hello "+user.userName+",<br> Please Click on the link to reset your Evelabs.care account password.<br><a href="+link+">Click here to verify</a><br> Please Click on this link to change local account password<br><a href="+offlinelink+">Click here to verify</a>" 
+					var offlinelink = "http://"+ipaddress+"/resetpassword/"+user.resetToken;
+					var onlinelink = "http://dripo.care/resetpassword/"+user.resetToken;;
+					const msg = {
+  			 		to: user.userName,
+ 			 		from: 'dripocare@evelabs.co',
+ 			 		subject: 'Verification Link For dripo.care',
+  					text: '******Email Contains two type links***********',
+  					html:  "Hello "+user.userName+",<br> Please Click on the link to reset your dripo.care account password.<br><a href="+onlinelink+">Click here to reset</a><br> Please Click on this link to change local account password<br><a href="+offlinelink+">Click here to reset</a>" 
+					// };
 					};
-					transporter.sendMail(mailOptions, function (err, info) {
-					   if(err)
-					     console.log(err)
-					   else
-					     console.log(info);
-					});
+					sgMail.send(msg);
 					
 					res.json({ success: true, message: 'Please check your e-mail for password reset link' }); // Return success message
 				}
@@ -224,28 +208,17 @@ router.put('/savepassword', function(req, res) {
 				console.log(err);
 				res.json({success:false,message:'Failed to connect to database'})
 			} else {
-				// If user successfully saved to database, create e-mail object
-				var transporter = nodemailer.createTransport({
-				  service: 'gmail',
-				  auth: {
-				    user: 'dripocare@gmail.com', 
-				    pass: '3v3lab5.co'
-				  }
-				});
-				var host=req.get('host');
-				var link="http://"+req.get('host')+"/login"; 
-				var mailOptions = {
-				  from: 'dripocare@gmail.com',
-				  to: user.userName,
-				  subject: 'Password reset successfull',
-				html : "Hello "+user.userName+",<br>You have successfully reset your password <br><a href="+link+">Click here to login</a>" 
+				const msg = {
+				to: user.userName,
+				from: 'dripocare@evelabs.co',
+				subject: 'Verification Link For dripo.care',
+				text: 'You have successfully changed your password',
+				html : "Hello "+user.userName+",<br>You have successfully reset your password <br>" 
+
+				// };
 				};
-				transporter.sendMail(mailOptions, function (err, info) {
-				   if(err)
-				     console.log(err)
-				   else
-				     console.log(info);
-				});
+				sgMail.send(msg);
+									
 				res.json({ success: true, message: 'Your password changed successfully'}); 
 			}
 		});
@@ -271,30 +244,17 @@ router.put('/activate/:token', function(req, res) {
 					if (err) {
 						console.log(err); // If unable to save user, log error info to console/terminal
 					} else {
-						res.json({ success: true, message: 'Account activated!' }); // Return success message to controller
-						var transporter = nodemailer.createTransport({
-						  service: 'gmail',
-						  auth: {
-						    user: 'dripocare@gmail.com', 
-						    pass: '3v3lab5.co'
-						  }
-						});
-						// If save succeeds, create e-mail object
-						var mailOptions = {
-							from: 'dripocare@gmail.com',
-							to: user.userName,
-							subject: 'Evelabs.care Account Activated',
-							text: 'Hello ' + user.userName + ', Your account has been successfully activated!',
-							html: 'Hello<strong> ' + user.userName + '</strong>,<br><br>Your account has been successfully activated!'
+						const msg = {
+						to: user.userName,
+						from: 'dripocare@evelabs.co',
+						subject: 'Verification Link For dripo.care',
+						text: 'Hello ' + user.userName + ', Your account has been successfully activated!',
+						html: 'Hello<strong> ' + user.userName + '</strong>,<br><br>Your account has been successfully activated!'
 						};
+						sgMail.send(msg);
+						res.json({ success: true, message: 'Account activated!' }); // Return success message to controller
 
-						// Send e-mail object to user
-						transporter.sendMail(mailOptions, function (err, info) {
-						   if(err)
-						     console.log(err)
-						   else
-						     console.log(info);
-						});
+
 					}
 				});
 			}
@@ -397,7 +357,7 @@ router.get('/permission',function (req,res) {
 
 router.get('/admin/gethost', function(req, res) {
 	var host = req.get('host');
-	if(host == 'localhost:3000'){
+	if(host == 'localhost:4000'){
 		res.json({success:true,type:'local'})
 	}
 	else{
@@ -667,6 +627,8 @@ router.post('/admin/bed',function (req,res) {
 			    	} 
 			    	else{
 			    		res.json({success:true,message:'Bed added'});
+			    		var stationid = station._id.toString();
+			    		serv.updateBeddetails(stationid);
 
 			    	}
 			    }
@@ -685,7 +647,7 @@ router.post('/admin/bed',function (req,res) {
 
 //route for fetching all the bed details to the admin view
 router.get('/admin/bed', function(req,res){
-	Bed.find({username: req.decoded.username}).exec(function(err, bed) {	
+	Bed.find({username: req.decoded.username}).sort({'bedname':1}).exec(function(err, bed) {	
 			if (err) throw err;
 			if(!bed.length){
 				res.json({success:false,message:'Add Beds and Start Managing'});
@@ -701,15 +663,22 @@ router.get('/admin/bed', function(req,res){
 //route to delete a bed from database
 router.delete('/admin/bed', function(req,res){
 	if(req.query.bedid){
-		Bed.remove({_id: req.query.bedid},function (err) {
-			if(err){
-				console.log(err);
-				res.json({success:false,message:"No bed found"});
-			}
-			else{
-				res.json({success:true,message:"Station removed successfully"});
-			}
-		});
+	Bed.findOne({_id:req.query.bedid}).exec(function (err,bed) {
+		if(err) throw err;
+		if(bed){
+			stationid = bed._station.toString();
+			Bed.remove({_id: req.query.bedid},function (err) {
+				if(err){
+					console.log(err);
+					res.json({success:false,message:"No bed found"});
+				}
+				else{
+					res.json({success:true,message:"bed removed successfully"});
+					serv.updateBeddetails(stationid);
+				}
+			});
+		}
+	});
 	}
 	else{
 		res.json({success:false,message:"No bedid in query"});
@@ -721,8 +690,9 @@ router.delete('/admin/bed', function(req,res){
 //edit bed route
 router.put('/admin/bed',function (req,res) {
 	if(req.body.bedname && req.body._id){
-		Bed.findOne({_id: req.body._id}).select('bedname').exec(function(err,bed) {
+		Bed.findOne({_id: req.body._id}).select('bedname _station').exec(function(err,bed) {
 			if (err) throw err; // Throw error if cannot connect
+			var stationid = bed._station.toString();
 			bed.bedname= req.body.bedname;
 			bed.save(function(err) {
 				if (err) {
@@ -730,6 +700,7 @@ router.put('/admin/bed',function (req,res) {
 					res.json({success:false,message:'Failed to connect to database'})
 				} else {
 					res.json({ success: true, message: 'Bed name updated'}); 
+					serv.updateBeddetails(stationid);
 				}
 			});
 		});
@@ -760,6 +731,9 @@ router.post('/admin/ivset', function(req,res){
 			else{
 
 				res.json({success:true,message:'Ivset added'});
+				var stationid = req.decoded.stationid.toString();
+				serv.updateTaskdetails(stationid);
+
 			}
 		});
 	}
@@ -797,6 +771,8 @@ router.delete('/admin/ivset', function(req,res){
 			}
 			else{
 				res.json({success:true,message:"Ivset removed successfully"});
+				var stationid = req.decoded.stationid.toString();
+				serv.updateTaskdetails(stationid);
 			}
 		});
 	}
@@ -820,6 +796,8 @@ router.put('/admin/ivset',function (req,res) {
 					res.json({success:false,message:'Failed to connect to database'})
 				} else {
 					res.json({ success: true, message: 'Ivset details updated'}); 
+					var stationid = req.decoded.stationid.toString();
+					serv.updateTaskdetails(stationid);
 				}
 			});
 		});
@@ -905,8 +883,9 @@ router.get('/admin/getconnecteddripos', function(req,res){
     var counter = 0;
     var driponames=[];
     request.get('http://localhost:18083/api/v2/nodes/emq@127.0.0.1/clients',function (request,response) {
+    	console.log(response);
         if(response){
-            var recObj=JSON.parse(response.body);
+            var recObj=JSON.parse(response);
             var clients=recObj.result.objects;
             for(var lp1=0;lp1<clients.length;lp1++){
             	var index = clients[lp1].client_id.search("DRIPO")
@@ -1136,10 +1115,33 @@ router.post('/nurse/setstation', function(req,res){
 //route for fetching all the bed details to nurse while adding patient
 router.get('/nurse/viewbed', function(req,res){
 	if(req.decoded.admin && req.decoded.station){
-		Bed.find({username: req.decoded.admin,stationname:req.decoded.station,status:'unoccupied'}).exec(function(err,bed) {	
+		Bed.find({username: req.decoded.admin,stationname:req.decoded.station,status:'unoccupied'}).sort({'bedname':1}).exec(function(err,bed) {	
 			if (err) throw err;
 			if(!bed.length){
 				res.json({success:false,message:'No bed found, Contact admin'});
+			}
+				
+			else{
+
+				res.json({success:true,message:'bed found',beds:bed});
+			}
+		});
+	}
+	else{
+		res.json({success:false,message:'Decoded token has no station value'});
+	}
+	
+});
+
+
+//route for fetching all occupied the bed details to nurse while adding task
+router.get('/nurse/viewoccupiedbed', function(req,res){
+	if(req.decoded.admin && req.decoded.station){
+		Bed.find({username: req.decoded.admin,stationname:req.decoded.station,status:'occupied'}).populate
+		({path:'_patient',model:'Patient'}).exec(function(err,bed) {	
+			if (err) throw err;
+			if(!bed.length){
+				res.json({success:false,message:'No bed found'});
 			}
 				
 			else{
@@ -1183,12 +1185,14 @@ router.post('/nurse/patient', function(req,res){
 				patient.patientname= req.body.patientname;
 				patient.patientage= req.body.patientage;
 				patient.patientweight= req.body.patientweight;
+				patient.gender= req.body.gender;
 				patient.patientstatus = 'active';
 				patient.bedname = req.body.bedname;
 				patient.doctorname = req.body.doctorname;
-				patient.admittedon = req.body.admittedon;
+				patient.admittedon = new Date();
 				patient.stationname = req.decoded.station;
 				patient._admin = req.decoded.admin;
+				patient._station = ObjectId(req.decoded.stationid);
 				// saving user to database
 				patient.save(function(err,patient){
 					if (err) {
@@ -1230,7 +1234,7 @@ router.post('/nurse/patient', function(req,res){
 //route for fetching all the patient details to nurse 
 router.get('/nurse/patient', function(req,res){
 	if(req.decoded.admin && req.decoded.station){
-		Patient.find({_admin: req.decoded.admin,stationname:req.decoded.station}).exec(function(err,patient) {	
+		Patient.find({_station:ObjectId(req.decoded.stationid)}).exec(function(err,patient) {	
 			if (err) throw err;
 			if(!patient.length){
 				res.json({success:false,message:'No patient found'});
@@ -1258,22 +1262,23 @@ router.put('/nurse/patient',function (req,res) {
 				res.json({success:false,message:'Invalid patient id'})
 			}
 			else{
-				if(req.body.patientname && req.body.patientage && req.body.patientweight && req.body.bedname && req.body.oldbed  && req.body.admittedon){
+				if(req.body.patientname && req.body.bedname){
 					patient.patientname= req.body.patientname;
 					patient.patientage= req.body.patientage;
+					patient.gender= req.body.gender;
 					patient.patientweight= req.body.patientweight;
-					patient.bedname= req.body.bedname;
 					patient.patientstatus = 'active';
 					patient.doctorname= req.body.doctorname;
-					patient.admittedon= req.body.admittedon;
 					patient.save(function(err) {
 						if (err) {
 								console.log(err);
 								res.json({success:false,message:'Failed to connect to database'})
 							} 
 						else {	
+								console.log(patient.bedname);
+								console.log(req.body.bedname);
 								//update bed and medication if there is an bed chanege
-								if(req.body.oldbed !== req.body.bedname){
+								if(patient.bedname !== req.body.bedname){
 									Bed.findOne({username: req.decoded.admin,bedname: req.body.bedname,stationname:req.decoded.station}).exec(function(err, bed) {
 										if (err) return handleError(err);
 										if(!bed){
@@ -1285,7 +1290,7 @@ router.put('/nurse/patient',function (req,res) {
 											bed.save(function (err) {
 												if(err) throw err;
 												else{
-													Bed.findOne({username: req.decoded.admin,bedname: req.body.oldbed,stationname:req.decoded.station}).exec(function(err, oldbed) {
+													Bed.findOne({username: req.decoded.admin,bedname:patient.bedname ,stationname:req.decoded.station}).exec(function(err, oldbed) {
 														if (err) throw err;
 														if(!oldbed){
 															res.json({success:false,message:'Invalid OldBed name'})
@@ -1297,6 +1302,7 @@ router.put('/nurse/patient',function (req,res) {
 																if(err) throw err;
 																else{
 																	Task.collection.updateMany({_bed:ObjectId(oldbed._id)},{$set:{_bed:bed._id}},{upsert:false});
+																	Patient.collection.update({_bed:ObjectId(oldbed._id)},{$set:{bedname:req.body.bedname}},{upsert:false});
 																	Patient.collection.update({_bed:ObjectId(oldbed._id)},{$set:{_bed:bed._id}},{upsert:false});
 																	Medication.collection.updateMany({_bed:ObjectId(oldbed._id)},{$set:{_bed:bed._id}},{upsert:false});
 																	res.json({success:true,message:'Patient details updated'});
@@ -1343,11 +1349,14 @@ router.put('/nurse/patient',function (req,res) {
 router.put('/nurse/dischargepatient', function(req,res){
 	if(req.body._id){
 		var date = new Date();
-		Patient.collection.update({_id:ObjectId(req.body._id)},{$set:{patientstatus:'discharged',dischargedon:date}},{upsert:false});
+		Patient.collection.update({_id:ObjectId(req.body._id)},{$set:{bedname:"",patientstatus:'discharged',dischargedon:date}},{upsert:false});
 		Task.collection.remove({_patient:ObjectId(req.body._id)});
 		Medication.collection.updateMany({_patient:ObjectId(req.body._id)},{$set:{_bed:""}});
 		Bed.collection.update({_patient:ObjectId(req.body._id)},{$set:{status:'unoccupied',_patient:""}},{upsert:false});
 		res.json({success:true,message:'Patient discharged'});
+		var stationid = req.decoded.stationid.toString();
+		serv.updateTaskdetails(stationid);
+
 	}
 	else{
 		res.json({success:true,message:'No valid patient id provided'});
@@ -1355,9 +1364,134 @@ router.put('/nurse/dischargepatient', function(req,res){
 	
 });
 
+
+//route for readding patient
+router.put('/nurse/readdpatient', function(req,res){
+	console.log(req.body);
+	Patient.findOne({_id:ObjectId(req.body._id)}).exec(function (err,patient) {
+		if(err) throw err;
+		patient.patientname= req.body.patientname;
+		patient.patientage= req.body.patientage;
+		patient.patientweight= req.body.patientweight;
+		patient.bedname = req.body.bedname;
+		patient.patientstatus = 'active';
+		patient.doctorname= req.body.doctorname;
+		patient.save(function(err) {
+							if (err) {
+									console.log(err);
+									res.json({success:false,message:'Failed to connect to database'})
+								} 
+							else {
+								Bed.findOne({username: req.decoded.admin,bedname: req.body.bedname,stationname:req.decoded.station}).exec(function(err, bed) {
+									if (err) return handleError(err);
+									if(!bed){
+										res.json({success:false,message:'Invalid Bed'})
+									}
+									else{
+										bed.status = 'occupied';
+										bed._patient = patient._id;
+										bed.save(function (err) {
+											if(err) throw err;
+											else{
+												res.json({success:true,message:'Patient details updated with no bed change'})
+
+											}
+										})
+									}
+								});
+
+							}
+		})
+
+	})
+
+
+});
+
+
+
+
+
+
+//route for adding task
+router.post('/nurse/task', function(req,res){
+	var timeinampm;
+	var timein24 = req.body.tasktime;
+	if(timein24 < 12){
+		console.log(timein24);
+		var timeinampm = timein24.toString() + ' AM'
+	}
+	else{
+		console.log(timein24);
+
+		var timeinampm = (timein24 -12).toString() + ' PM';
+	}
+	Bed.findOne({_id:ObjectId(req.body.bedname)}).exec(function(err,bed) {
+		if(err) throw err;
+		if(bed.length !=0){
+			var med = {};
+			med.medicinename = req.body.medicinename;
+			med.medicinerate = req.body.medicinerate;
+			med.medicinevolume = req.body.medicinevolume;
+			med.stationname = req.decoded.station;
+			med._admin = req.decoded.admin;
+			med._bed = ObjectId(req.body.bedname);
+			med._patient = ObjectId(bed._patient);
+			patientid = ObjectId(bed._patient);
+			bedid = ObjectId(req.body.bedname);
+			// saving user to database
+			Medication.collection.insert(med, onInsert);
+			function onInsert(err,docs){
+				if(err) throw err;
+				else{
+					var timeObj={};
+					//update patient collection and insert thr refernce of medicine id
+					Patient.collection.update({_id:patientid},{$push:{_medication:med._id}},{upsert:false});
+					//docs.ops has the data available and req.body.medications[].time has all the time associated with that medicine
+					docs.ops.forEach(function callback(currentValue, index, array) {
+					         timeObj.time=req.body.tasktime;
+					         timeObj.timeampm=timeinampm;
+					         timeObj.type='infusion';
+					         timeObj.priority = 0;
+					         timeObj.status='opened';
+					         timeObj.totalVolume=req.body.medicinevolume;
+					         timeObj.createdat=new Date();
+					         timeObj.infusedVolume =0;
+					         timeObj._patient=patientid;
+					         timeObj._bed=bedid;
+					         timeObj._medication=currentValue._id;
+					         timeObj._station=ObjectId(req.decoded.stationid);
+					                            
+					});
+					Task.collection.insert(timeObj, onInsert);
+					function onInsert(err,times) {
+						if(err) throw err;
+						else{
+	
+							 Medication.collection.update({_id:med._id},{$set:{_task:timeObj._id}},{upsert:false});
+
+						}
+					}
+
+				res.json({success:true,message:"task added successfully"})
+				var stationid = req.decoded.stationid.toString();
+				serv.updateTaskdetails(stationid);
+
+				}//end of adding medication success
+			}//end of medication insert function
+
+
+		}
+		
+	})
+
+
+
+})
+
+
 //route for adding medications
 router.post('/nurse/medication', function(req,res){
-	console.log(req.body);
 	if(req.body[0].medicinename && req.body[0].medicinerate && req.body[0].medicinevolume && req.body[0].patientid &&  req.body[0].bedid){
 		var medicationObjArray=[{}];
 		var patientid;
@@ -1429,6 +1563,8 @@ router.post('/nurse/medication', function(req,res){
 					}
 				}
 			res.json({success:true,message:"medication added successfully"})
+			var stationid = req.decoded.stationid.toString();
+			serv.updateTaskdetails(stationid);
 
 			}//end of adding medication success
 		}//end of medication insert function
@@ -1605,6 +1741,7 @@ router.put('/nurse/medication', function(req,res){
 				// Task.collection.updateMany({_medication:medicineid},{$set:{status:'deleted'}},{upsert:false});
 				Task.collection.remove({_medication:medicineid},{upsert:false});
 
+
 			}
 		}
 		
@@ -1677,9 +1814,9 @@ router.put('/nurse/medication', function(req,res){
 
 
 		}
-		
-
 	res.json({success:true,message:"medication details updated"})	
+	var stationid = req.decoded.stationid.toString();
+	serv.updateTaskdetails(stationid);
 	});//end of find medication
 
 });
@@ -1692,6 +1829,8 @@ router.post('/nurse/deletemedication', function(req,res){
 	Medication.collection.updateMany({_patient:patientid},{$unset:{_task:""}},{upsert:false});
 	Task.collection.remove({_patient:patientid});
 	res.json({success:true,message:"deleted all medicine associated with patient"})
+	var stationid = req.decoded.stationid.toString();
+	serv.updateTaskdetails(stationid);
 });
 
 
@@ -1713,7 +1852,6 @@ router.get('/nurse/getopenedtask', function(req,res){
 				}
 				//reorder returned task array of object based on present time
 				else{
-					console.log(task);
 					var nexthour = hour;
 					while(nexthour<24){ 
 						for(lp1=0;lp1<task.length;lp1++){
@@ -1800,6 +1938,7 @@ router.get('/nurse/getalertedtask', function(req,res){
 				else{
 					res.json({success:true,alertedtasks:alertedtask})
 
+
 				}
 		});
 
@@ -1813,8 +1952,14 @@ router.get('/nurse/getalertedtask', function(req,res){
 //route to skip a task 
 router.put('/nurse/skiptask', function(req,res){
 	if(req.body._id){
-		Task.collection.update({_id:ObjectId(req.body._id)},{$set:{status:'skipped',rate:"",infusedVolume:"",timeRemaining:"",totalVolume:"",percentage:"",infusionstatus:"",topic:""}});
-		res.json({success:true,message:'task skipped'})
+		Task.collection.remove({_id:ObjectId(req.body._id)});
+		Medication.collection.update({_task:ObjectId(req.body._id)},{$set:{_task:""}});
+		res.json({success:true,message:'task delted'})
+		var stationid = req.decoded.stationid.toString();
+		console.log(stationid);
+		serv.updateTaskdetails(stationid);
+		res.json({success:true,message:'task deleted'})
+
 	}
 	else{
 		res.json({success:false,message:'task id not provided'})
@@ -1828,6 +1973,10 @@ router.put('/nurse/closetask', function(req,res){
 	if(req.body._id){
 		Task.collection.update({_id:ObjectId(req.body._id)},{$set:{status:'closed',rate:"",infusedVolume:"",timeRemaining:"",totalVolume:"",percentage:"",infusionstatus:"",topic:""}});
 		res.json({success:true,message:'task closed'})
+		var stationid = req.decoded.stationid.toString();
+		console.log(stationid);
+		serv.updateTaskdetails(stationid);
+		res.json({success:true,message:'task status done'})
 
 	}
 	else{
@@ -1846,7 +1995,9 @@ router.get('/nurse/patientdetails', function(req,res){
 
 			}
 			else{
+				console.log(JSON.stringify(patient));
 				res.json({success:true,patientdetails:patient});
+
 
 			}
 		});
@@ -1861,8 +2012,45 @@ router.get('/nurse/patientdetails', function(req,res){
 
 });
 
+//route to provide hostname of all local synapses linked with online server
+router.get('/su/hostname', function(req,res){
+	Synapse.find({}).exec(function(err, synapse) {	
+			if (err) throw err;
+			if(!synapse.length){
+				res.json({success:false,message:'No synapse found'});
+			}
+			
+			else{
+
+				res.json({success:true,message:'Synapses found',synapses:synapse});
+			}
+	});
+});
+
+//route to provide infusion details of selected synapse to superuser
+router.get('/su/getinfdetails', function(req,res){
+	var hname=req.query.hostname;
+	var date= req.query.date;
+	console.log(req.query);
+	Analysis.find({hostname:hname,date:req.query.day}).sort({infdate: -1}).exec(function(err, inf) {	
+			if (err) throw err;
+			console.log(inf);
+			if(!inf.length){
+				res.json({success:false,message:'No infusion'});
+			}
+			
+			else{
+
+				res.json({success:true,message:'Synapses found',infs:inf});
+			}
+	});
+});
 
 
 
 return router;
 }
+
+
+
+
