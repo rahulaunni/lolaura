@@ -731,8 +731,7 @@ router.post('/admin/ivset', function(req,res){
 			else{
 
 				res.json({success:true,message:'Ivset added'});
-				var stationid = req.decoded.stationid.toString();
-				serv.updateTaskdetails(stationid);
+				
 
 			}
 		});
@@ -771,8 +770,7 @@ router.delete('/admin/ivset', function(req,res){
 			}
 			else{
 				res.json({success:true,message:"Ivset removed successfully"});
-				var stationid = req.decoded.stationid.toString();
-				serv.updateTaskdetails(stationid);
+				
 			}
 		});
 	}
@@ -796,8 +794,7 @@ router.put('/admin/ivset',function (req,res) {
 					res.json({success:false,message:'Failed to connect to database'})
 				} else {
 					res.json({ success: true, message: 'Ivset details updated'}); 
-					var stationid = req.decoded.stationid.toString();
-					serv.updateTaskdetails(stationid);
+					
 				}
 			});
 		});
