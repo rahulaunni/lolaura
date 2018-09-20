@@ -316,6 +316,7 @@ client.on('connect', function() {
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //New code for sending data to all device while starting a server
 sendTaskDetails(); //call the function to fetch all task details and send to all nursing station
+sendIVsetdetails();
 sendBedandDfs();
 //function to send all bed names 
 function sendBedandDfs() {
@@ -350,6 +351,41 @@ function sendBedandDfs() {
 
 }
 
+//To send IVset details to all station
+function sendIVsetdetails() {
+  Station.find({}).exec(function (err,station) {
+    if(err) throw err;
+        if(station.length !=0){
+            for(var key=0;key<station.length;key++){
+                stationid = station[key]._id.toString();
+                username = station[key].username;
+                Ivset.find({username:username}).sort({ivsetdpf:1}).exec(function(err,ivset){
+                    if(err) throw err;
+                    if(ivset.length == 0){
+                        client.publish('dripo/'+stationid+'/df',' &',{ qos: 1, retain: true});
+
+                    }
+                    else{
+                        var pub_dff=[];
+                        for (var key2 in ivset)
+                        {
+                          pub_dff.push(ivset[key2].ivsetdpf); 
+                          pub_dff.push('&');
+                          pub_dff.push(ivset[key2].ivsetdpf); 
+                          pub_dff.push('&');  
+
+                        }
+                        var pub_df=pub_dff.join('');
+                        client.publish('dripo/' + stationid+ '/df',pub_df,{ qos: 1, retain: true });
+
+                    }
+                })
+            }//end of stations loop
+        }
+    
+  })
+}
+
 //send bed details when admin updates bednames or done any crud ops
 exports.updateBeddetails = function (station) {
     stationid = station;
@@ -373,6 +409,42 @@ exports.updateBeddetails = function (station) {
 
         }
     })
+}
+
+exports.updateIvsetdetails = function () {
+  Station.find({}).exec(function (err,station) {
+    if(err) throw err;
+        if(station.length !=0){
+            for(var key=0;key<station.length;key++){
+                stationid = station[key]._id.toString();
+                username = station[key].username;
+                Ivset.find({username:username}).sort({ivsetdpf:1}).exec(function(err,ivset){
+                    if(err) throw err;
+                    if(ivset.length == 0){
+                        client.publish('dripo/'+stationid+'/df',' &',{ qos: 1, retain: true});
+
+                    }
+                    else{
+                        var pub_dff=[];
+                        for (var key2 in ivset)
+                        {
+                          pub_dff.push(ivset[key2].ivsetdpf); 
+                          pub_dff.push('&');
+                          pub_dff.push(ivset[key2].ivsetdpf); 
+                          pub_dff.push('&');  
+
+                        }
+                        var pub_df=pub_dff.join('');
+                        client.publish('dripo/' + stationid+ '/df',pub_df,{ qos: 1, retain: true });
+
+                    }
+                })
+            }//end of stations loop
+        }
+    
+  });
+
+  
 }
 
 

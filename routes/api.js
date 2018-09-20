@@ -731,6 +731,8 @@ router.post('/admin/ivset', function(req,res){
 			else{
 
 				res.json({success:true,message:'Ivset added'});
+				serv.updateIvsetdetails();
+
 				
 
 			}
@@ -770,6 +772,8 @@ router.delete('/admin/ivset', function(req,res){
 			}
 			else{
 				res.json({success:true,message:"Ivset removed successfully"});
+				serv.updateIvsetdetails();
+
 				
 			}
 		});
@@ -794,6 +798,7 @@ router.put('/admin/ivset',function (req,res) {
 					res.json({success:false,message:'Failed to connect to database'})
 				} else {
 					res.json({ success: true, message: 'Ivset details updated'}); 
+					serv.updateIvsetdetails();
 					
 				}
 			});
