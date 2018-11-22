@@ -267,7 +267,7 @@ router.put('/activate/:token', function(req, res) {
 router.post('/login',function (req,res) {
 	if(req.body.username && req.body.password){
 		//finding user from database
-		User.findOne({userName:req.body.username}).select('userName _id hospitalName password active').exec(function (err,user) {
+		User.findOne({userName:req.body.username}).select('userName _id hospitalName password active _admin').exec(function (err,user) {
 			if(err) throw err;
 			//if no user found resond with no user found error message
 			if(!user){
@@ -285,7 +285,7 @@ router.post('/login',function (req,res) {
 				}
 				else{
 					//successful login and passing a token to the user for login
-					var token = jwt.sign({username:user.userName,hospitalname:user.hospitalName,uid:user._id},secret);
+					var token = jwt.sign({username:user.userName,hospitalname:user.hospitalName,uid:user._id,admin:user._admin},secret);
 					res.json({success:true,message:"Authentication success",token:token});
 
 				}
@@ -317,10 +317,7 @@ router.use(function (req,res,next) {
 			}
 			else{
 				req.decoded=decoded;
-				User.find({userName:req.decoded.username}).exec(function (err,user) {
-					req.decoded.admin = user[0]._admin;
-					next();
-				});
+				next();
 			}
 		});
 	}
@@ -331,10 +328,11 @@ router.use(function (req,res,next) {
 
 router.get('/user',function (req,res) {
 	if(!req.decoded){
-		res.send("Unable to decode user, login again")
+		console.log("dec failed");
+		res.send({success:false,message:"Unable to decode user, login again"})
 	}
 	else{
-		res.send(req.decoded);
+		res.send({success:true,userData:req.decoded});
 
 	}
 });
@@ -345,7 +343,7 @@ router.get('/permission',function (req,res) {
 	User.findOne({userName:req.decoded.username}).exec(function (err,user) {
 		if(err) throw err;
 		//if no user found resond with no user found error message
-		if(user.length == 0){
+		if(!user){
 			res.json({success:false,message:"No user found"});
 		}
 		else{
@@ -1092,7 +1090,6 @@ router.get('/nurse/viewstation', function(req,res){
 });
 //route to set new token including the user selected station
 router.post('/nurse/setstation', function(req,res){
-	console.log(req.decoded);
 	if(req.body.stationname){
 		Station.find({username: req.decoded.admin,stationname:req.body.stationname}).exec(function(err, station) {
 			if(station.length == 0){
@@ -1100,7 +1097,7 @@ router.post('/nurse/setstation', function(req,res){
 			}
 			else{
 				console.log(station);
-				var token = jwt.sign({username:req.decoded.username,hospitalname:req.decoded.hospitalname,uid:req.decoded.uid,station:req.body.stationname,stationid:station[0]._id},secret);
+				var token = jwt.sign({username:req.decoded.username,hospitalname:req.decoded.hospitalname,uid:req.decoded.uid,admin:req.decoded.admin,station:req.body.stationname,stationid:station[0]._id},secret);
 				res.json({success:true,message:"token updated",token:token});
 
 			}

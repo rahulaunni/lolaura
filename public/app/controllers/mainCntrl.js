@@ -31,32 +31,45 @@ angular.module('mainController',['authServices','userServices','nurseServices'])
 		if(Auth.isLoggedIn()){
 			app.isLoggedIn = true;
 			Auth.getUser().then(function (data) {
-				app.hospitalname = data.data.hospitalname;
-				app.username = data.data.username;
-				app.station = data.data.station;
-				app.stationid = data.data.stationid;
-				User.getPermission().then(function (data) {
-					if(data.data.permission === 'admin'){
-						app.adminaccess = true;
-						app.loadMe = true;
-					}
-					else if(data.data.permission === 'nurse'){
-						app.nurseaccess = true;
-						app.loadMe = true;
-					}
-					else if(data.data.permission === 'doctor'){
-						app.doctoraccess = true;
-						app.loadMe = true;
-					}
-					else if(data.data.permission === 'su'){
-						app.suaccess = true;
-						app.loadMe = true;
-					}
-					else{
-						app.loadMe = true;
+				if(data.data.success == true){
+					app.hospitalname = data.data.userData.hospitalname;
+					app.username = data.data.userData.username;
+					app.station = data.data.userData.station;
+					app.stationid = data.data.userData.stationid;
+					User.getPermission().then(function (data) {
+						if(data.data.permission === 'admin'){
+							app.adminaccess = true;
+							app.loadMe = true;
+						}
+						else if(data.data.permission === 'nurse'){
+							app.nurseaccess = true;
+							app.loadMe = true;
+						}
+						else if(data.data.permission === 'doctor'){
+							app.doctoraccess = true;
+							app.loadMe = true;
+						}
+						else if(data.data.permission === 'su'){
+							app.suaccess = true;
+							app.loadMe = true;
+						}
+						else{
+							app.loadMe = true;
 
-					}
-				});
+						}
+					});
+				}
+				else{
+					app.errorMsg = false;
+					app.successMsg = false;
+					app.adminaccess = false;
+					app.nurseaccess = false;
+					app.doctoraccess = false;
+					Auth.logout();
+					$window.location.reload('/login');
+
+				}
+				
 
 			});
 

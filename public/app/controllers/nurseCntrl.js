@@ -21,6 +21,7 @@ angular.module('nurseController',['authServices','userServices','adminServices',
 		Nurse.setStation(this.selectstationData).then(function (data) {
 			if(data.data.success){
 				app.selected=true;
+				console.log("exec");
 				$location.url('/');
 			}
 			else{
@@ -32,7 +33,8 @@ angular.module('nurseController',['authServices','userServices','adminServices',
 
 	//redirect user if no station selected
 	Auth.getUser().then(function (data) {
-		if(!data.data.station){
+		if(!data.data.userData.station){
+			console.log("redirect to select station");
 			$location.path('/selectstation')
 		}
 

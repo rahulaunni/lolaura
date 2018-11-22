@@ -2,7 +2,7 @@ angular.module('homeController',['homeServices'])
 .controller('homeCntrl',function ($http,$route,$scope,$rootScope,$interval,$window,$location,$timeout,$mdDialog,$scope,Home,socket,Auth) {
     //redirect user if no station selected
     Auth.getUser().then(function (data) {
-      if(!data.data.station){
+      if(!data.data.userData.station){
         $location.path('/selectstation')
       }
 

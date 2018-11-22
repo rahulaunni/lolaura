@@ -447,7 +447,7 @@ exports.updateIvsetdetails = function () {
   
 }
 
-
+//old task sending code
 function sendTaskDetails() {
   Station.find({}).exec(function(err, station) {
     if(err) throw err;
@@ -872,7 +872,6 @@ client.on('message', function (topic, message) {
                 && topicinfoArray[2] != 'task' && topicinfoArray[2] != 'time' && topicinfoArray[2] != 'med' && topicinfoArray[2] != 'vol'
                  && topicinfoArray[2] != 'rate' && topicinfoArray[2] != 'df' && topicinfoArray[2] != 'allbed'){
                 client.publish('error/' + dripoid ,'Device&Not&Added',function (err) {
-                    console.log("DEVICE NOT ADDED");
                     if(err){
                         console.log(err);
                     }
@@ -1221,6 +1220,7 @@ client.on('message', function (topic, payload, packet) {
             var totalVolume = messageArray[5];
             var deviceCharge = messageArray[6];
             var dropCount = messageArray[7];
+            var taskValid = ObjectId.isValid(taskid);
             var percentage = Math.trunc(((infusedVolume/totalVolume)*100));
             var infdate= new Date();
             var inftime=(new Date()).getHours()+':'+(new Date()).getMinutes()+':'+(new Date()).getSeconds();
@@ -1231,9 +1231,9 @@ client.on('message', function (topic, payload, packet) {
             var newdate = day + "/" + month + "/" + year;
            
 
-            if(status == 'start'){
+            if(status == 'start' && taskValid){
                 var ratee=Number(rate)+1;
-                Medication.collection.update({_task:ObjectId(taskid)},{$set:{medicinerate:ratee}},{upsert:true});    
+                Medication.collection.update({_task:ObjectId(taskid)},{$set:{medicinerate:ratee}},{upsert:true}); 
                 io.emit('dripo',{
                     'topic':topic.toString(),
                     'payload':payload.toString(),
@@ -1286,7 +1286,7 @@ client.on('message', function (topic, payload, packet) {
                 exports.updateTaskdetails(stationid);
 
             } //end of if status is start
-            else if(status == 'infusing'){
+            else if(status == 'infusing'  && taskValid){
                 io.emit('dripo',{
                     'topic':topic.toString(),
                     'payload':payload.toString(),
@@ -1306,7 +1306,7 @@ client.on('message', function (topic, payload, packet) {
                 // fs.appendFileSync(filePath,inftime+","+messageArray[6]+'\n', "UTF-8",{'flags': 'a+'});
 
             }//end of if status is infusing
-            else if(status == 'stopp'){
+            else if(status == 'stopp'  && taskValid){
                 if(percentage<90){
                     io.emit('dripo',{
                         'topic':topic.toString(),
@@ -1362,7 +1362,7 @@ client.on('message', function (topic, payload, packet) {
                 }
 
             }//end of stopp for auto task dripo
-            else if(status == 'stop'){
+            else if(status == 'stop'  && taskValid){
                 if(percentage<90){
                     io.emit('dripo',{
                         'topic':topic.toString(),
@@ -1421,7 +1421,7 @@ client.on('message', function (topic, payload, packet) {
 
             }
 
-            else if(status == 'Empty'){
+            else if(status == 'Empty'  && taskValid){
                 io.emit('dripo',{
                     'topic':topic.toString(),
                     'payload':payload.toString(),
@@ -1442,7 +1442,7 @@ client.on('message', function (topic, payload, packet) {
 
 
             }
-            else if(status == 'Empty_ACK'){
+            else if(status == 'Empty_ACK'  && taskValid){
                 io.emit('dripo',{
                     'topic':topic.toString(),
                     'payload':payload.toString(),
@@ -1472,7 +1472,7 @@ client.on('message', function (topic, payload, packet) {
 
             }//end of Empty_ACK
 
-            else if(status == 'Rate_Err'|| status=='Block'){
+            else if(status == 'Rate_Err'|| status=='Block'  && taskValid){
                 io.emit('dripo',{
                     'topic':topic.toString(),
                     'payload':payload.toString(),
@@ -1538,7 +1538,7 @@ client.on('message', function (topic, payload, packet) {
 
 
             }//end of error
-            else if(status == 'Complete'){
+            else if(status == 'Complete'  && taskValid){
                 io.emit('dripo',{
                     'topic':topic.toString(),
                     'payload':payload.toString(),
@@ -1558,7 +1558,7 @@ client.on('message', function (topic, payload, packet) {
 
             }//end of complete
 
-            else if(status == 'Rate_Err_ACK'|| status=='Block_ACK'){
+            else if(status == 'Rate_Err_ACK'|| status=='Block_ACK'  && taskValid){
                 io.emit('dripo',{
                     'topic':topic.toString(),
                     'payload':payload.toString(),
@@ -1577,7 +1577,7 @@ client.on('message', function (topic, payload, packet) {
 
 
             }//end of error ack
-            else if(status == 'Device_Disconnected_ACK'){
+            else if(status == 'Device_Disconnected_ACK'  && taskValid){
                 io.emit('dripo',{
                     'topic':topic.toString(),
                     'payload':payload.toString(),
@@ -1594,7 +1594,7 @@ client.on('message', function (topic, payload, packet) {
 
 
             }//end of error ack
-            else if(status == 'Complete_ACK'){
+            else if(status == 'Complete_ACK'  && taskValid){
                 io.emit('dripo',{
                     'topic':topic.toString(),
                     'payload':payload.toString(),
